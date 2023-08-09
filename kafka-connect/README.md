@@ -518,6 +518,70 @@ https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/source_
 
 https://docs.confluent.io/kafka-connectors/jdbc/current/sink-connector/sink_config_options.html
 
+'Importance: high'인 것만 보면
+
+`connection.url`
+* JDBC 연결 URL
+* For example: jdbc:oracle:thin:@localhost:1521:orclpdb1, jdbc:mysql://localhost/db_name, jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=db_name
+* Type: string
+* Importance: high
+* Dependents: table.whitelist, table.blacklist
+
+`connection.user`
+* JDBC 연결 사용자
+* Type: string
+* Default: null
+* Importance: high
+
+`connection.password`
+* JDBC 연결 암호
+* Type: password
+* Default: null
+* Importance: high
+
+`insert.mode`
+* 사용할 삽입 모드
+* Type: string
+* Default: insert
+* Valid Values: insert, upsert, update
+* Importance: high
+* 지원되는 모드는 다음과 같음
+* insert
+    * 표준 SQL INSERT 문을 사용합니다.
+* upsert
+    * 커넥터에서 지원하는 경우(예: INSERT OR IGNORE) 대상 데이터베이스에 적절한 upsert 의미 체계를 사용하십시오. upsert 모드를 사용하는 경우 커넥터 구성에서 pk.mode 및 pk.fields 속성을 추가하고 정의해야 합니다. 예를 들어:
+
+```json
+{
+     ...
+     "pk.mode": "record_value",
+     "pk.fields": "id"
+     ...
+}
+```
+
+* update
+    * 커넥터에서 지원하는 경우(예: UPDATE) 대상 데이터베이스에 대해 적절한 업데이트 의미 체계를 사용하십시오.
+
+`pk.mode`
+* 기본 키 모드는 상호 작용에 대한 pk.fields 설명서도 참조하십시오
+* Type: string
+* Default: none
+* Valid Values: none, kafka, record_key, record_value
+* Importance: high
+* 지원되는 모드는 다음과 같습니다.
+* none
+    * 사용된 키가 없습니다.
+* kafka
+    * Apache Kafka® coordinate가 기본 키로 사용됩니다.
+    * 일부 JDBC 언어(예: Oracle 및 MySQL 언어)의 경우 pk.mode를 kafka로 설정하고 auto.create를 true로 설정하면 예외가 발생할 수 있습니다. 커넥터가 고정 길이 문자열(예: VARCHAR(256))이 아닌 가변 길이 문자열(예: TEXT)에 STRING을 맵핑하기 때문에 예외가 발생합니다. 기본 키는 고정된 길이를 가져야 합니다. 이 예외를 방지하려면 다음을 고려하십시오.
+        * auto.create를 true로 설정하지 마십시오.
+        * 데이터베이스 테이블과 기본 키 데이터 유형을 미리 작성하십시오.
+* record_key
+    * 프리미티브 또는 구조체일 수 있는 레코드 키의 필드가 사용됩니다.
+* record_value
+    * 구조체여야 하는 레코드 값의 필드가 사용됩니다.
+
 ### JDBC Driver 별 가이드
 
 https://docs.confluent.io/kafka-connectors/jdbc/current/jdbc-drivers.html
