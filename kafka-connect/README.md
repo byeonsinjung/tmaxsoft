@@ -447,3 +447,79 @@ $ ${KAFKA_HOME}/bin/kafka-console-consumer.sh --bootstrap-server 192.168.53.21:9
 ```
 
 * from이라는 컬럼에 maria라는 값이 추가된 것을 확인
+
+## 3. JDBC Connector 설정
+
+### JDBC Source Connector 설정
+
+https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/source_config_options.html
+
+'Importance: high'인 것만 보면
+
+`connection.url`
+* JDBC 연결 URL
+* For example: jdbc:oracle:thin:@localhost:1521:orclpdb1, jdbc:mysql://localhost/db_name, jdbc:sqlserver://localhost;instance=SQLEXPRESS;databaseName=db_name
+* Type: string
+* Importance: high
+* Dependents: table.whitelist, table.blacklist
+
+`connection.user`
+* JDBC 연결 사용자
+* Type: string
+* Default: null
+* Importance: high
+
+`connection.password`
+* JDBC 연결 암호
+* Type: password
+* Default: null
+* Importance: high
+
+`schema.pattern`
+* 데이터베이스에서 테이블 메타데이터를 가져오는 스키마 패턴
+* Type: string
+* Default: null
+    * `""`는 스키마가 없는 항목을 검색합니다.
+    * null(기본값)은 스키마 이름이 검색 범위를 좁히는 데 사용되지 않고 스키마에 관계없이 모든 테이블 메타데이터를 가져옴을 나타냅니다.
+* Importance: high
+* 이를 기본 null 설정으로 두면 많은 양의 테이블 메타데이터가 수신되기 때문에 커넥터가 시간 초과되어 실패할 수 있습니다.
+* 대형 데이터베이스에 대해 이 매개변수를 설정해야 합니다.
+
+`mode`
+* 폴링될 때마다 테이블을 업데이트하는 모드
+* Type: string
+* Default: ""
+* Valid Values: bulk, incrementing, timestamp, timestamp+incrementing
+    * bulk: 폴링될 때마다 전체 테이블의 대량 로드를 수행
+    * incrementing: 각 테이블에서 엄격하게 증가하는 열을 사용하여 새 행만 감지. 이것은 기존 행의 수정 또는 삭제를 감지하지 않음
+    * timestamp: 타임스탬프 열을 사용하여 새 행과 수정된 행을 감지. 이것은 열이 각 쓰기로 업데이트되고 값이 단조롭게 증가하지만 반드시 고유하지는 않다고 가정
+    * timestamp+incrementing: 두 개의 열을 사용. 새로운 행과 수정된 행을 감지하는 타임스탬프 열과 각 행에 고유한 스트림 오프셋을 할당할 수 있도록 업데이트에 전역적으로 고유한 ID를 제공하는 엄격하게 증가하는 열
+* Importance: high
+* Dependents: incrementing.column.name, timestamp.column.name, validate.non.null
+
+`poll.interval.ms`
+* 각 테이블의 새 데이터를 폴링하는 빈도(ms)
+* Type: int
+* Default: 5000
+* Importance: high
+
+`topic.prefix`
+* 테이블 이름 앞에 추가하여 데이터를 게시할 Apache Kafka® 항목의 이름을 생성하거나 사용자 지정 쿼리의 경우 게시할 항목의 전체 이름을 생성하는 접두사
+* Type: string
+* Importance: high
+
+`timestamp.delay.interval.ms`
+* 특정 타임스탬프가 있는 행이 나타난 후 결과에 포함하기까지 대기하는 시간. 이전 타임스탬프가 있는 트랜잭션을 완료할 수 있도록 약간의 지연을 추가하도록 선택할 수 있음. 첫 번째 실행은 현재 시간에서 지연을 뺀 시간까지 사용 가능한 모든 레코드(즉, 타임스탬프 0에서 시작)를 가져옴. 이후의 모든 실행은 마지막으로 가져온 시간부터 현재 시간에서 지연을 뺀 시간까지 데이터를 가져옴
+* Type: long
+* Default: 0
+* Importance: high
+
+### JDBC Sink Connector 설정
+
+https://docs.confluent.io/kafka-connectors/jdbc/current/sink-connector/sink_config_options.html
+
+### JDBC Driver 별 가이드
+
+https://docs.confluent.io/kafka-connectors/jdbc/current/jdbc-drivers.html
+
+Maria는 없다. 별도 JAR를 추가해줘야 한다.
