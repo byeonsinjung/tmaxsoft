@@ -273,3 +273,182 @@ $ ${KAFKA_HOME}/bin/kafka-console-consumer.sh --bootstrap-server 192.168.53.21:9
 
 ## 2. Transformation
 
+### Maria Source Connector 등록
+
+```shell
+POST http://192.168.53.24:8083/connectors
+```
+
+```json
+{
+    "name": "maria-source",
+    "config": {
+        "connector.class": "JdbcSource",
+        "mode": "bulk",
+        "topic.prefix": "bss-connect-",
+        "topic.creation.default.partitions": "1",
+        "connection.password": "inner",
+        "tasks.max": "1",
+        "connection.user": "inner",
+        "topic.creation.default.replication.factor": "1",
+        "connection.url": "jdbc:mysql://192.168.53.18:32002/hfi",
+        "table.whitelist": "test"
+    }
+}
+```
+
+#### 응답
+
+```json
+{
+    "name": "maria-source",
+    "config": {
+        "connector.class": "JdbcSource",
+        ...
+    },
+    "tasks": [],
+    "type": "source"
+}
+```
+
+<br>
+
+### Postgre Sink Connector 등록
+
+```shell
+POST http://192.168.53.24:8083/connectors
+```
+
+```json
+{
+    "name": "postgre-sink",
+    "config": {
+        "connector.class": "JdbcSink",
+        "tasks.max": "1",
+        "connection.url": "jdbc:postgresql://192.168.53.18:32000/hfi",
+        "connection.user": "inner",
+        "connection.password": "inner",
+        "auto.create": "false",
+        "auto.evolve": "false",
+        "topics": "bss-connect-test",
+        "table.name.format": "public.test",
+        "insert.mode": "upsert",
+        "pk.mode": "record_value",
+        "pk.fields": "id"
+    }
+}
+```
+
+#### 응답
+
+```json
+{
+    "name": "postgre-sink",
+    "config": {
+        "connector.class": "JdbcSink",
+        ...
+    },
+    "tasks": [],
+    "type": "sink"
+}
+```
+
+<br>
+
+### 등록된 Connector 확인
+
+```shell
+GET http://192.168.53.24:8083/connectors
+```
+
+#### 응답
+
+```json
+[
+    "postgre-sink",
+    "maria-source"
+]
+```
+
+<br>
+
+### 등록된 Connector 상태 확인
+
+```shell
+GET http://192.168.53.24:8083/connectors/maria-source/status
+```
+
+#### 응답
+
+```json
+{
+    "name": "maria-source",
+    "connector": {
+        "state": "RUNNING",
+        "worker_id": "127.0.1.1:8083"
+    },
+    "tasks": [
+        {
+            "id": 0,
+            "state": "RUNNING",
+            "worker_id": "127.0.1.1:8083"
+        }
+    ],
+    "type": "source"
+}
+```
+* RUNNING 인지 확인
+
+(Postgre도 동일)
+
+<br>
+
+### Maria에 데이터 삽입
+
+```sql
+> INSERT INTO test (name, role) VALUES ('kih', 'admin');
+> INSERT INTO test (name, role) VALUES ('lwj', 'user');
+> INSERT INTO test (name, role) VALUES ('aht', 'user');
+> INSERT INTO test (name, role) VALUES ('bss', 'user');
+> SELECT * FROM test;
+
++-----+------+-------+
+| id  | name | role  |
++-----+------+-------+
+| 101 | kih  | admin |
+| 102 | lwj  | user  |
+| 103 | aht  | user  |
+| 104 | bss  | user  |
++-----+------+-------+
+```
+
+<br>
+
+### Kafka 메시지 확인
+
+```shell
+$ ${KAFKA_HOME}/bin/kafka-console-consumer.sh --bootstrap-server 192.168.53.21:9092,192.168.53.22:9092,192.168.53.23:9092 --topic bss-connect-test
+
+{"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"role"}],"optional":false,"name":"test"},"payload":{"id":101,"name":"bss","role":"user"}}
+{"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"role"}],"optional":false,"name":"test"},"payload":{"id":102,"name":"kih","role":"admin"}}
+{"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"role"}],"optional":false,"name":"test"},"payload":{"id":103,"name":"lwj","role":"user"}}
+{"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":true,"field":"name"},{"type":"string","optional":true,"field":"role"}],"optional":false,"name":"test"},"payload":{"id":104,"name":"smj","role":"admin"}}
+...
+```
+
+<br>
+
+### Postgre 데이터 확인
+
+```sql
+> SELECT * FROM test;
+
++-----+------+-------+
+| id  | name | role  |
++-----+------+-------+
+| 101 | kih  | admin |
+| 102 | lwj  | user  |
+| 103 | aht  | user  |
+| 104 | bss  | user  |
++-----+------+-------+
+```
